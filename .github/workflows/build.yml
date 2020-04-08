@@ -1,0 +1,30 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+
+  linux:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Configure
+        run :  |
+          sudo apt-get install libsqlite3-dev
+          mkdir -p pm-build && cd pm-build && cmake -D BUILD_TESTING=ON ..
+      - name: Compile tests
+        working-directory: pm-build
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: make -j4
+      - name: Run tests
+        working-directory: pm-build
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
+        run: ctest --timeout 5 -C Debug -j4
