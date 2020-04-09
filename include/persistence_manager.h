@@ -7,32 +7,28 @@
 #include <memory>
 #include <type_traits>
 
-#include <sqlite3.h>
-
 #include "registry_item_t.h"
 
 enum class persistence_manager_status {
-    STATUS_OK = SQLITE_OK, STATUS_ROW = SQLITE_ROW, STATUS_DONE = SQLITE_DONE
+    STATUS_KO = -1, STATUS_OK, STATUS_ROW, STATUS_DONE
 };
 
-bool operator!=(int lhs, persistence_manager_status rhs);
-
-bool operator==(persistence_manager_status lhs, int rhs);
+persistence_manager_status sqlite_rc_to_persistence_manager_status(int rc);
 
 struct persistence_manager_open_close_interface {
-    virtual int open(std::string const &) noexcept = 0;
+    virtual persistence_manager_status open(std::string const &) noexcept = 0;
 
-    virtual int close() noexcept = 0;
+    virtual persistence_manager_status close() noexcept = 0;
 };
 
 struct persistence_manager_begin_transaction_commit_interface {
-    virtual int begin_transaction() noexcept = 0;
+    virtual persistence_manager_status begin_transaction() noexcept = 0;
 
-    virtual int commit() noexcept = 0;
+    virtual persistence_manager_status commit() noexcept = 0;
 };
 
 struct persistence_manager_insertable_interface {
-    virtual int insert_into_data_table(registry_item_t const &ri) noexcept = 0;
+    virtual persistence_manager_status insert_into_data_table(registry_item_t const &ri) noexcept = 0;
 };
 
 struct persistence_manager_selectable_interface {
@@ -47,7 +43,7 @@ struct persistence_manager_interface
 
     [[nodiscard]] virtual std::string get_db_name(std::string const &) const noexcept = 0;
 
-    virtual int create_data_table() noexcept = 0;
+    virtual persistence_manager_status create_data_table() noexcept = 0;
 
     virtual ~persistence_manager_interface() noexcept = 0;
 };
@@ -69,27 +65,28 @@ struct persistence_manager : public persistence_manager_interface {
         return db_name;
     }
 
-    [[nodiscard]] int open(std::string const &db_name) noexcept override;
+    [[nodiscard]] persistence_manager_status open(std::string const &db_name) noexcept override;
 
-    [[nodiscard]] int close() noexcept override;
+    [[nodiscard]] persistence_manager_status close() noexcept override;
 
-    [[nodiscard]] int begin_transaction() noexcept override;
+    [[nodiscard]] persistence_manager_status begin_transaction() noexcept override;
 
-    [[nodiscard]] int commit() noexcept override;
+    [[nodiscard]] persistence_manager_status commit() noexcept override;
 
-    [[nodiscard]] int create_data_table() noexcept override;
+    [[nodiscard]] persistence_manager_status create_data_table() noexcept override;
 
-    [[nodiscard]] int insert_into_data_table(registry_item_t const &ri) noexcept override;
+    [[nodiscard]] persistence_manager_status insert_into_data_table(registry_item_t const &ri) noexcept override;
 
     [[nodiscard]] std::vector<registry_item_t> select_all_from_data_table() noexcept override;
 
 protected:
-    [[nodiscard]] int performSQLiteGetQuery(const std::string &sql_string) noexcept;
+    [[nodiscard]] persistence_manager_status performSQLiteGetQuery(const std::string &sql_string) noexcept;
 
     [[nodiscard]] std::string getSQLiteColumnText(int col) const noexcept;
 
     [[nodiscard]] std::map<int, std::vector<std::string>>
     performSQLiteSelectQuery(const std::string &sql_string) noexcept;
+
 private:
     struct Impl;
     std::unique_ptr<Impl> pImpl;

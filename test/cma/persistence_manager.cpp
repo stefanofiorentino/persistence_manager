@@ -9,8 +9,8 @@ TEST(PersistenceManager, OpenClose) {
     ri.timestamp = getISOCurrentTimestamp();
     auto db_name = db->get_db_name(ri.timestamp);
     std::remove(db_name.c_str());
-    ASSERT_EQ(0, db->open(db_name));
-    ASSERT_EQ(0, db->close());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->open(db_name));
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->close());
 }
 
 TEST(PersistenceManager, BeginTransactionCommit) {
@@ -20,10 +20,10 @@ TEST(PersistenceManager, BeginTransactionCommit) {
     ri.timestamp = getISOCurrentTimestamp();
     auto db_name = db->get_db_name(ri.timestamp);
     std::remove(db_name.c_str());
-    ASSERT_EQ(0, db->open(db_name));
-    ASSERT_EQ(0, db->begin_transaction());
-    ASSERT_EQ(0, db->commit());
-    ASSERT_EQ(0, db->close());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->open(db_name));
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->begin_transaction());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->commit());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->close());
 }
 
 TEST(PersistenceManager, CreateDataTable) {
@@ -33,11 +33,11 @@ TEST(PersistenceManager, CreateDataTable) {
     ri.timestamp = getISOCurrentTimestamp();
     auto db_name = db->get_db_name(ri.timestamp);
     std::remove(db_name.c_str());
-    ASSERT_EQ(0, db->open(db_name));
-    ASSERT_EQ(0, db->begin_transaction());
-    ASSERT_EQ(0, db->create_data_table());
-    ASSERT_EQ(0, db->commit());
-    ASSERT_EQ(0, db->close());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->open(db_name));
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->begin_transaction());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->create_data_table());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->commit());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->close());
 }
 
 TEST(PersistenceManager, InsertIntoDataTable) {
@@ -47,12 +47,12 @@ TEST(PersistenceManager, InsertIntoDataTable) {
     ri.timestamp = getISOCurrentTimestamp();
     auto db_name = db->get_db_name(ri.timestamp);
     std::remove(db_name.c_str());
-    ASSERT_EQ(0, db->open(db_name));
-    ASSERT_EQ(0, db->begin_transaction());
-    ASSERT_EQ(0, db->create_data_table());
-    ASSERT_EQ(0, db->insert_into_data_table(ri));
-    ASSERT_EQ(0, db->commit());
-    ASSERT_EQ(0, db->close());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->open(db_name));
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->begin_transaction());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->create_data_table());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->insert_into_data_table(ri));
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->commit());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->close());
 }
 
 TEST(PersistenceManager, SelectAllFromDataTable) {
@@ -63,11 +63,11 @@ TEST(PersistenceManager, SelectAllFromDataTable) {
     ri.sensor_type = "sensor_type";
     auto db_name = db->get_db_name(ri.timestamp);
     std::remove(db_name.c_str());
-    ASSERT_EQ(0, db->open(db_name));
-    ASSERT_EQ(0, db->begin_transaction());
-    ASSERT_EQ(0, db->create_data_table());
-    ASSERT_EQ(0, db->insert_into_data_table(ri));
-    ASSERT_EQ(0, db->commit());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->open(db_name));
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->begin_transaction());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->create_data_table());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->insert_into_data_table(ri));
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->commit());
     auto items = db->select_all_from_data_table();
     ASSERT_FALSE(items.empty());
     auto string = items.at(0).timestamp;
@@ -80,10 +80,10 @@ TEST(PersistenceManager, SelectAllFromDataTable) {
         }
     }
     ASSERT_TRUE(found);
-    ASSERT_EQ(0, db->close());
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->close());
 }
 
-static int close_test_helper(persistence_manager &&pm) {
+static persistence_manager_status close_test_helper(persistence_manager &&pm) {
     return pm.close();
 }
 
@@ -94,6 +94,6 @@ TEST(PersistenceManager, MoveOperators) {
     ri.timestamp = getISOCurrentTimestamp();
     auto db_name = db->get_db_name(ri.timestamp);
     std::remove(db_name.c_str());
-    ASSERT_EQ(0, db->open(db_name));
-    ASSERT_EQ(0, close_test_helper(std::move(*db)));
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, db->open(db_name));
+    ASSERT_EQ(persistence_manager_status::STATUS_OK, close_test_helper(std::move(*db)));
 }

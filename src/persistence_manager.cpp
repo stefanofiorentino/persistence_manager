@@ -1,11 +1,18 @@
 #include "include/persistence_manager.h"
 
-bool operator!=(int lhs, persistence_manager_status rhs) {
-    return lhs != static_cast<int>(rhs);
-}
+#include <sqlite3.h>
 
-bool operator==(persistence_manager_status lhs, int rhs) {
-    return static_cast<int>(lhs) == rhs;
+persistence_manager_status sqlite_rc_to_persistence_manager_status(int rc) {
+    switch(rc) {
+        case SQLITE_DONE:
+            return persistence_manager_status::STATUS_DONE;
+        case SQLITE_OK:
+            return persistence_manager_status::STATUS_OK;
+        case SQLITE_ROW:
+            return persistence_manager_status::STATUS_ROW;
+        default:
+            return persistence_manager_status::STATUS_KO;
+    }
 }
 
 struct persistence_manager::Impl {
@@ -23,47 +30,47 @@ persistence_manager::persistence_manager(persistence_manager &&rhs) noexcept = d
 
 persistence_manager &persistence_manager::operator=(persistence_manager &&rhs) noexcept = default;
 
-int persistence_manager::open(std::string const &db_name) noexcept {
-    return sqlite3_open(db_name.c_str(), &pImpl->persistentDB);
+persistence_manager_status persistence_manager::open(std::string const &db_name) noexcept {
+    return sqlite_rc_to_persistence_manager_status(sqlite3_open(db_name.c_str(), &pImpl->persistentDB));
 }
 
-int persistence_manager::close() noexcept {
-    return sqlite3_close_v2(pImpl->persistentDB);
+persistence_manager_status persistence_manager::close() noexcept {
+    return sqlite_rc_to_persistence_manager_status(sqlite3_close_v2(pImpl->persistentDB));
 }
 
-int persistence_manager::begin_transaction() noexcept {
+persistence_manager_status persistence_manager::begin_transaction() noexcept {
     int rc = sqlite3_prepare_v2(pImpl->persistentDB, "BEGIN TRANSACTION", -1, &pImpl->stmt, nullptr);
-    if(rc != persistence_manager_status::STATUS_OK) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_OK) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
     rc = sqlite3_step(pImpl->stmt);
-    if(rc != persistence_manager_status::STATUS_DONE) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_DONE) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
-    return sqlite3_finalize(pImpl->stmt);
+    return sqlite_rc_to_persistence_manager_status(sqlite3_finalize(pImpl->stmt));
 }
 
-int persistence_manager::commit() noexcept {
+persistence_manager_status persistence_manager::commit() noexcept {
     int rc = sqlite3_prepare_v2(pImpl->persistentDB, "COMMIT", -1, &pImpl->stmt, nullptr);
-    if(rc != persistence_manager_status::STATUS_OK) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_OK) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
     rc = sqlite3_step(pImpl->stmt);
-    if(rc != persistence_manager_status::STATUS_DONE) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_DONE) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
-    return sqlite3_finalize(pImpl->stmt);
+    return sqlite_rc_to_persistence_manager_status(sqlite3_finalize(pImpl->stmt));
 }
 
-int persistence_manager::create_data_table() noexcept {
+persistence_manager_status persistence_manager::create_data_table() noexcept {
     // creazione tabella principale
     char const *sql_string = R"(
 CREATE TABLE IF NOT EXISTS `data_table` (
@@ -72,61 +79,61 @@ CREATE TABLE IF NOT EXISTS `data_table` (
 	`sensor_type`	TEXT NOT NULL
 ))";
     int rc = sqlite3_prepare_v2(pImpl->persistentDB, sql_string, -1, &pImpl->stmt, nullptr);
-    if(rc != persistence_manager_status::STATUS_OK) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_OK) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
     rc = sqlite3_step(pImpl->stmt);
-    if(rc != persistence_manager_status::STATUS_DONE) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_DONE) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
-    return sqlite3_finalize(pImpl->stmt);
+    return sqlite_rc_to_persistence_manager_status(sqlite3_finalize(pImpl->stmt));
 }
 
-int persistence_manager::insert_into_data_table(registry_item_t const &ri) noexcept {
+persistence_manager_status persistence_manager::insert_into_data_table(registry_item_t const &ri) noexcept {
     // inserimento dati nel db aperto
     char const *sql_string = R"(
 INSERT INTO `data_table`(
     `timestamp`,
     `sensor_type`) VALUES (?, ?))";
     int rc = sqlite3_prepare_v2(pImpl->persistentDB, sql_string, -1, &pImpl->stmt, nullptr);
-    if(rc != persistence_manager_status::STATUS_OK) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_OK) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
     rc = sqlite3_bind_text(pImpl->stmt, 1, ri.timestamp.c_str(), -1, SQLITE_STATIC);
-    if(rc != persistence_manager_status::STATUS_OK) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_OK) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
     rc = sqlite3_bind_text(pImpl->stmt, 2, ri.sensor_type.c_str(), -1, SQLITE_STATIC);
-    if(rc != persistence_manager_status::STATUS_OK) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_OK) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
     rc = sqlite3_step(pImpl->stmt);
-    if(rc != persistence_manager_status::STATUS_DONE) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_DONE) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
-    return sqlite3_finalize(pImpl->stmt);
+    return sqlite_rc_to_persistence_manager_status(sqlite3_finalize(pImpl->stmt));
 }
 
-int persistence_manager::performSQLiteGetQuery(const std::string &sql_string) noexcept {
+persistence_manager_status persistence_manager::performSQLiteGetQuery(const std::string &sql_string) noexcept {
     int rc = sqlite3_prepare_v2(pImpl->persistentDB, sql_string.c_str(), -1, &pImpl->stmt, nullptr);
-    if(rc != persistence_manager_status::STATUS_OK) {
+    if(sqlite_rc_to_persistence_manager_status(rc) != persistence_manager_status::STATUS_OK) {
         // TODO: gestione errori
         auto s = sqlite3_errmsg(pImpl->persistentDB);
-        return rc;
+        return sqlite_rc_to_persistence_manager_status(rc);
     }
-    return sqlite3_step(pImpl->stmt);
+    return sqlite_rc_to_persistence_manager_status(sqlite3_step(pImpl->stmt));
 }
 
 std::map<int, std::vector<std::string>>
@@ -144,7 +151,7 @@ persistence_manager::performSQLiteSelectQuery(const std::string &sql_string) noe
             returnVectorString.push_back(getSQLiteColumnText(col));
         }
         returnMapVectorString[row] = returnVectorString;
-        rc = sqlite3_step(pImpl->stmt);
+        rc = sqlite_rc_to_persistence_manager_status(sqlite3_step(pImpl->stmt));
         row++;
     }
     sqlite3_finalize(pImpl->stmt);
