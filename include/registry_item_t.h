@@ -5,7 +5,6 @@
 #include <vector>
 #include <algorithm>
 
-
 struct registry_item_t final {
     std::string timestamp;
     std::string sensor_type;
@@ -21,5 +20,15 @@ struct registry_item_t final {
     }
 };
 
+inline std::string getNumericTimestamp(const std::string &timestamp) {
+    return timestamp.substr(0, 4) + timestamp.substr(5, 2) + timestamp.substr(8, 2) + timestamp.substr(11, 2) +
+           timestamp.substr(14, 2) + timestamp.substr(17, 2) + "000";
+}
+
+inline std::tuple<std::string, std::string> timestamp_to_isodate_and_date(registry_item_t const &item) {
+    auto isodate = item.timestamp;
+    auto date = getNumericTimestamp(isodate);
+    return {date, isodate};
+}
 
 #endif //SM1CMA_REGISTRY_ITEM_T_H
